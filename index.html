@@ -2,71 +2,156 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Cuộc Đua Kỳ Thú</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Đua Ngựa Chuyên Nghiệp</title>
     <style>
-        body { font-family: sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        #game-box { width: 80%; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .track { position: relative; width: 100%; height: 80px; border-bottom: 2px dashed #ccc; overflow: hidden; }
-        .runner { position: absolute; left: 0; font-size: 50px; transition: left 0.1s linear; line-height: 80px; }
-        .finish-line { position: absolute; right: 10px; top: 0; bottom: 0; width: 5px; background: red; }
-        h1 { text-align: center; color: #333; }
-        #winner-msg { text-align: center; font-size: 24px; font-weight: bold; color: #d9534f; margin-top: 20px; display: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .setup-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+        button { background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
+        button:hover { background: #218838; }
+
+        #race-track { background: #2e7d32; border: 5px solid #1b5e20; border-radius: 8px; position: relative; overflow-x: hidden; display: none; padding: 10px 0; }
+        .lane { height: 60px; border-bottom: 1px dashed rgba(255,255,255,0.3); position: relative; display: flex; align-items: center; }
+        .horse-container { position: absolute; left: 0; display: flex; flex-direction: column; align-items: center; transition: left 0.1s linear; }
+        .horse-name { background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; margin-bottom: 2px; }
+        .horse-icon { font-size: 30px; }
+        .finish-line { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; background: repeating-linear-gradient(45deg, #fff, #fff 10px, #000 10px, #000 20px); border-left: 2px solid red; }
+        
+        #timer-display { text-align: center; font-size: 40px; font-weight: bold; color: #d32f2f; margin: 10px 0; display: none; }
+        #result { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 50px rgba(0,0,0,0.5); text-align: center; display: none; z-index: 100; }
     </style>
 </head>
 <body>
 
-<div id="game-box">
-    <h1>🏁 Cuộc đua bắt đầu sau 3 giây...</h1>
-    <div class="track"><div id="p1" class="runner">🐎</div><div class="finish-line"></div></div>
-    <div class="track"><div id="p2" class="runner">🐎</div><div class="finish-line"></div></div>
-    <div class="track"><div id="p3" class="runner">🐎</div><div class="finish-line"></div></div>
-    <div id="winner-msg"></div>
+<div class="setup-panel" id="setup">
+    <h2>Cấu Hình Cuộc Đua</h2>
+    <div class="input-group">
+        <label>Số lượng ngựa (Tối đa 1000):</label>
+        <input type="number" id="horseCount" value="10" min="1" max="1000">
+    </div>
+    <div class="input-group">
+        <label>Danh sách tên ngựa (Cách nhau bởi dấu phẩy hoặc xuống dòng):</label>
+        <textarea id="horseNames" placeholder="Ví dụ: Chiến Mã, Xích Thố, Đại Bàng..."></textarea>
+    </div>
+    <div class="input-group" style="display: flex; gap: 10px;">
+        <div style="flex: 1;">
+            <label>Phút:</label>
+            <input type="number" id="minutes" value="0" min="0">
+        </div>
+        <div style="flex: 1;">
+            <label>Giây:</label>
+            <input type="number" id="seconds" value="10" min="5">
+        </div>
+    </div>
+    <button onclick="initRace()">KHỞI TẠO & BẮT ĐẦU</button>
+</div>
+
+<div id="timer-display">00:00</div>
+<div id="race-track"></div>
+
+<div id="result">
+    <h1 id="winner-name"></h1>
+    <button onclick="location.reload()">ĐUA LẠI</button>
 </div>
 
 <script>
-    // Hàm này sẽ tự chạy ngay khi trang web tải xong
-    window.onload = function() {
-        let countdown = 3;
-        const title = document.querySelector('h1');
-
-        // Đếm ngược trước khi đua
-        const timer = setInterval(() => {
-            countdown--;
-            if (countdown > 0) {
-                title.innerText = "🏁 Cuộc đua bắt đầu sau " + countdown + " giây...";
-            } else {
-                title.innerText = "🚀 ĐUAAAAA!";
-                clearInterval(timer);
-                startRace(); // Gọi hàm đua
-            }
-        }, 1000);
-    };
-
-    function startRace() {
-        let p1 = 0, p2 = 0, p3 = 0;
-        const finishLine = 92; // % chiều dài đường đua
+    function initRace() {
+        const count = parseInt(document.getElementById('horseCount').value);
+        const nameInput = document.getElementById('horseNames').value;
+        const totalSeconds = (parseInt(document.getElementById('minutes').value) * 60) + parseInt(document.getElementById('seconds').value);
         
-        const raceInterval = setInterval(() => {
-            // Tạo tốc độ ngẫu nhiên khác nhau cho mỗi con ngựa
-            p1 += Math.random() * 1.8;
-            p2 += Math.random() * 1.8;
-            p3 += Math.random() * 1.8;
+        // Xử lý danh sách tên
+        let names = nameInput.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
+        
+        const track = document.getElementById('race-track');
+        track.innerHTML = '<div class="finish-line"></div>';
+        track.style.display = 'block';
+        document.getElementById('setup').style.display = 'none';
+        document.getElementById('timer-display').style.display = 'block';
 
-            document.getElementById('p1').style.left = p1 + "%";
-            document.getElementById('p2').style.left = p2 + "%";
-            document.getElementById('p3').style.left = p3 + "%";
+        const horses = [];
 
-            // Kiểm tra người thắng
-            if (p1 >= finishLine || p2 >= finishLine || p3 >= finishLine) {
-                clearInterval(raceInterval);
-                let winner = p1 >= finishLine ? "Ngựa số 1" : (p2 >= finishLine ? "Ngựa số 2" : "Ngựa số 3");
-                
-                const msg = document.getElementById('winner-msg');
-                msg.innerText = "🏆 CHÚC MỪNG: " + winner + " ĐÃ CHIẾN THẮNG!";
-                msg.style.display = "block";
-                document.querySelector('h1').innerText = "KẾT THÚC!";
+        // Tạo ngựa
+        for (let i = 0; i < count; i++) {
+            const name = names[i] || `Ngựa số ${i + 1}`;
+            const lane = document.createElement('div');
+            lane.className = 'lane';
+            
+            const container = document.createElement('div');
+            container.className = 'horse-container';
+            container.id = `horse-${i}`;
+            
+            container.innerHTML = `
+                <span class="horse-name">${name}</span>
+                <span class="horse-icon">🐎</span>
+            `;
+            
+            lane.appendChild(container);
+            track.appendChild(lane);
+            
+            horses.push({
+                element: container,
+                pos: 0,
+                name: name,
+                finished: false
+            });
+        }
+
+        startRace(horses, totalSeconds);
+    }
+
+    function startRace(horses, duration) {
+        const startTime = Date.now();
+        const endTime = startTime + (duration * 1000);
+        const timerDisplay = document.getElementById('timer-display');
+        
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const remaining = Math.max(0, endTime - now);
+            
+            // Cập nhật đồng hồ
+            const m = Math.floor(remaining / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            timerDisplay.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+            // Logic di chuyển
+            let leader = null;
+            let maxPos = -1;
+
+            horses.forEach(h => {
+                if (!h.finished) {
+                    // Tốc độ được tính toán dựa trên thời gian còn lại để đảm bảo về đích đúng lúc
+                    const progress = (now - startTime) / (duration * 1000);
+                    const randomBoost = Math.random() * 2;
+                    h.pos = (progress * 90) + (randomBoost * (progress * 10)); 
+                    
+                    if (h.pos >= 92) h.pos = 92;
+                    h.element.style.left = h.pos + "%";
+
+                    if (h.pos > maxPos) {
+                        maxPos = h.pos;
+                        leader = h;
+                    }
+                }
+            });
+
+            // Khi hết thời gian
+            if (remaining <= 0) {
+                clearInterval(interval);
+                // Tìm con ngựa có vị trí xa nhất làm người thắng
+                const winner = horses.reduce((prev, current) => (prev.pos > current.pos) ? prev : current);
+                showWinner(winner.name);
             }
         }, 50);
+    }
+
+    function showWinner(name) {
+        document.getElementById('winner-name').innerText = "🏆 CHIẾN THẮNG: " + name;
+        document.getElementById('result').style.display = 'block';
     }
 </script>
 
