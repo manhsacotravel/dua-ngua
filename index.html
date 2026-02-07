@@ -3,39 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Đua Ngựa Chuyên Nghiệp</title>
+    <title>Đua Ngựa Chuyên Nghiệp v2</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-        .setup-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .setup-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
         input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        textarea { height: 100px; resize: vertical; }
-        button { background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
-        button:hover { background: #218838; }
+        textarea { height: 80px; }
+        button { background: #28a745; color: white; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; transition: 0.3s; }
+        button:hover { background: #218838; transform: scale(1.02); }
 
-        #race-track { background: #2e7d32; border: 5px solid #1b5e20; border-radius: 8px; position: relative; overflow-x: hidden; display: none; padding: 10px 0; }
-        .lane { height: 60px; border-bottom: 1px dashed rgba(255,255,255,0.3); position: relative; display: flex; align-items: center; }
-        .horse-container { position: absolute; left: 0; display: flex; flex-direction: column; align-items: center; transition: left 0.1s linear; }
-        .horse-name { background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; white-space: nowrap; margin-bottom: 2px; }
-        .horse-icon { font-size: 30px; }
-        .finish-line { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; background: repeating-linear-gradient(45deg, #fff, #fff 10px, #000 10px, #000 20px); border-left: 2px solid red; }
+        #race-track { 
+            background: #2e7d32; border: 5px solid #1b5e20; border-radius: 8px; 
+            position: relative; display: none; padding: 10px 0;
+            max-height: 80vh; overflow-y: auto;
+        }
+        .lane { 
+            height: 70px; border-bottom: 1px dashed rgba(255,255,255,0.2); 
+            position: relative; width: 100%; min-width: 1000px;
+        }
+        .horse-container { 
+            position: absolute; left: 0; bottom: 5px; 
+            display: flex; flex-direction: column; align-items: center; 
+            will-change: transform; /* Tối ưu hóa hiệu năng */
+        }
+        .horse-name { 
+            background: rgba(0,0,0,0.7); color: white; padding: 2px 8px; 
+            border-radius: 10px; font-size: 11px; white-space: nowrap; margin-bottom: 2px;
+        }
+        .horse-icon { font-size: 35px; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
         
-        #timer-display { text-align: center; font-size: 40px; font-weight: bold; color: #d32f2f; margin: 10px 0; display: none; }
-        #result { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 0 50px rgba(0,0,0,0.5); text-align: center; display: none; z-index: 100; }
+        .finish-line { 
+            position: absolute; right: 50px; top: 0; bottom: 0; width: 15px; 
+            background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px); 
+            border-left: 3px solid red; z-index: 10;
+        }
+        
+        #timer-display { text-align: center; font-size: 48px; font-weight: bold; color: #d32f2f; margin: 10px 0; display: none; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        #result { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: white; padding: 40px; border-radius: 20px; 
+            box-shadow: 0 0 100px rgba(0,0,0,0.5); text-align: center; 
+            display: none; z-index: 1000; border: 4px solid #ffc107;
+        }
     </style>
 </head>
 <body>
 
 <div class="setup-panel" id="setup">
-    <h2>Cấu Hình Cuộc Đua</h2>
+    <h2 style="text-align: center;">🏁 CẤU HÌNH CUỘC ĐUA</h2>
     <div class="input-group">
-        <label>Số lượng ngựa (Tối đa 1000):</label>
-        <input type="number" id="horseCount" value="10" min="1" max="1000">
+        <label>Số lượng ngựa (1 - 1000):</label>
+        <input type="number" id="horseCount" value="5" min="1" max="1000">
     </div>
     <div class="input-group">
-        <label>Danh sách tên ngựa (Cách nhau bởi dấu phẩy hoặc xuống dòng):</label>
-        <textarea id="horseNames" placeholder="Ví dụ: Chiến Mã, Xích Thố, Đại Bàng..."></textarea>
+        <label>Danh sách tên (Dán từ Excel hoặc nhập cách nhau bằng dấu phẩy):</label>
+        <textarea id="horseNames" placeholder="Ngựa A, Ngựa B, Ngựa C..."></textarea>
     </div>
     <div class="input-group" style="display: flex; gap: 10px;">
         <div style="flex: 1;">
@@ -44,27 +68,31 @@
         </div>
         <div style="flex: 1;">
             <label>Giây:</label>
-            <input type="number" id="seconds" value="10" min="5">
+            <input type="number" id="seconds" value="15" min="5">
         </div>
     </div>
-    <button onclick="initRace()">KHỞI TẠO & BẮT ĐẦU</button>
+    <button onclick="initRace()">BẮT ĐẦU ĐUA NGAY</button>
 </div>
 
 <div id="timer-display">00:00</div>
 <div id="race-track"></div>
 
 <div id="result">
-    <h1 id="winner-name"></h1>
-    <button onclick="location.reload()">ĐUA LẠI</button>
+    <div style="font-size: 50px;">🏆</div>
+    <h1 id="winner-name" style="margin: 10px 0;"></h1>
+    <p style="font-size: 18px; color: #666;">Đã về đích xuất sắc!</p>
+    <button onclick="location.reload()" style="background: #007bff;">QUAY LẠI CÀI ĐẶT</button>
 </div>
 
 <script>
+    let animationId;
+    let isRacing = false;
+
     function initRace() {
         const count = parseInt(document.getElementById('horseCount').value);
         const nameInput = document.getElementById('horseNames').value;
-        const totalSeconds = (parseInt(document.getElementById('minutes').value) * 60) + parseInt(document.getElementById('seconds').value);
+        const totalDuration = (parseInt(document.getElementById('minutes').value) * 60) + parseInt(document.getElementById('seconds').value);
         
-        // Xử lý danh sách tên
         let names = nameInput.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
         
         const track = document.getElementById('race-track');
@@ -74,84 +102,94 @@
         document.getElementById('timer-display').style.display = 'block';
 
         const horses = [];
-
-        // Tạo ngựa
         for (let i = 0; i < count; i++) {
-            const name = names[i] || `Ngựa số ${i + 1}`;
+            const name = names[i] || `Ngựa ${i + 1}`;
             const lane = document.createElement('div');
             lane.className = 'lane';
             
             const container = document.createElement('div');
             container.className = 'horse-container';
-            container.id = `horse-${i}`;
-            
-            container.innerHTML = `
-                <span class="horse-name">${name}</span>
-                <span class="horse-icon">🐎</span>
-            `;
+            container.innerHTML = `<span class="horse-name">${name}</span><span class="horse-icon">🐎</span>`;
             
             lane.appendChild(container);
             track.appendChild(lane);
             
             horses.push({
-                element: container,
-                pos: 0,
+                el: container,
                 name: name,
-                finished: false
+                x: 0,
+                velocity: 0,
+                baseSpeed: 0.05 + Math.random() * 0.05, // Tốc độ nền khác nhau
+                burstChance: 0.01 + Math.random() * 0.02 // Tỷ lệ bứt tốc ngẫu nhiên
             });
         }
 
-        startRace(horses, totalSeconds);
+        startSmoothRace(horses, totalDuration);
     }
 
-    function startRace(horses, duration) {
-        const startTime = Date.now();
+    function startSmoothRace(horses, duration) {
+        const startTime = performance.now();
         const endTime = startTime + (duration * 1000);
-        const timerDisplay = document.getElementById('timer-display');
-        
-        const interval = setInterval(() => {
-            const now = Date.now();
-            const remaining = Math.max(0, endTime - now);
-            
-            // Cập nhật đồng hồ
-            const m = Math.floor(remaining / 60000);
-            const s = Math.floor((remaining % 60000) / 1000);
-            timerDisplay.innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        const finishX = 90; // Vị trí vạch đích (%)
 
-            // Logic di chuyển
-            let leader = null;
-            let maxPos = -1;
+        function update() {
+            const now = performance.now();
+            const elapsed = (now - startTime) / 1000;
+            const remaining = Math.max(0, (endTime - now) / 1000);
+
+            // Cập nhật đồng hồ
+            const m = Math.floor(remaining / 60);
+            const s = Math.floor(remaining % 60);
+            document.getElementById('timer-display').innerText = 
+                `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+            let winner = null;
 
             horses.forEach(h => {
-                if (!h.finished) {
-                    // Tốc độ được tính toán dựa trên thời gian còn lại để đảm bảo về đích đúng lúc
-                    const progress = (now - startTime) / (duration * 1000);
-                    const randomBoost = Math.random() * 2;
-                    h.pos = (progress * 90) + (randomBoost * (progress * 10)); 
-                    
-                    if (h.pos >= 92) h.pos = 92;
-                    h.element.style.left = h.pos + "%";
+                // Logic di chuyển mượt mà
+                // 1. Tốc độ cơ bản theo thời gian
+                let acceleration = h.baseSpeed;
 
-                    if (h.pos > maxPos) {
-                        maxPos = h.pos;
-                        leader = h;
-                    }
+                // 2. Bứt tốc ngẫu nhiên
+                if (Math.random() < h.burstChance) {
+                    h.velocity += 0.5; // Cú hích tốc độ
+                }
+
+                // 3. Đảm bảo ngựa tiến dần về đích theo thời gian quy định
+                const timeProgress = elapsed / duration;
+                const targetX = timeProgress * finishX;
+                
+                // Điều chỉnh vận tốc để bám sát tiến độ cuộc đua nhưng vẫn có sự trồi sụt
+                h.velocity += (targetX - h.x) * 0.01;
+                h.velocity *= 0.95; // Lực ma sát để tốc độ không tăng vô hạn
+                
+                h.x += Math.max(0.01, h.velocity); // Đảm bảo luôn tiến về phía trước
+
+                // Cập nhật vị trí hiển thị
+                h.el.style.transform = `translateX(${h.x}vw)`; // Dùng vw để mượt hơn trên mọi màn hình
+
+                if (h.x >= 92) {
+                    h.x = 92;
+                    if (!winner) winner = h;
                 }
             });
 
-            // Khi hết thời gian
-            if (remaining <= 0) {
-                clearInterval(interval);
-                // Tìm con ngựa có vị trí xa nhất làm người thắng
-                const winner = horses.reduce((prev, current) => (prev.pos > current.pos) ? prev : current);
-                showWinner(winner.name);
+            if (now < endTime && !winner) {
+                animationId = requestAnimationFrame(update);
+            } else {
+                // Kết thúc cuộc đua
+                const finalWinner = horses.reduce((prev, curr) => (prev.x > curr.x) ? prev : curr);
+                showWinner(finalWinner.name);
             }
-        }, 50);
+        }
+
+        animationId = requestAnimationFrame(update);
     }
 
     function showWinner(name) {
-        document.getElementById('winner-name').innerText = "🏆 CHIẾN THẮNG: " + name;
+        document.getElementById('winner-name').innerText = name;
         document.getElementById('result').style.display = 'block';
+        document.getElementById('timer-display').style.display = 'none';
     }
 </script>
 
