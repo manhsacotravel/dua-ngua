@@ -3,64 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Ngựa Chuyên Nghiệp v3 - Pro Animation</title>
+    <title>Đua Ngựa Chuyên Nghiệp v4</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; overflow-x: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .setup-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto 20px auto; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
         input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #28a745; color: white; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; transition: 0.3s; }
-        button:hover { background: #218838; transform: scale(1.02); }
+        button { background: #28a745; color: white; border: none; padding: 15px; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; width: 100%; }
 
         #race-track { 
             background: #2e7d32; border: 5px solid #1b5e20; border-radius: 8px; 
             position: relative; display: none; padding: 20px 0;
-            max-height: 85vh; overflow-y: auto; scroll-behavior: smooth;
+            max-height: 80vh; overflow-y: auto; overflow-x: hidden;
         }
         .lane { 
-            height: 100px; border-bottom: 2px dashed rgba(255,255,255,0.2); 
-            position: relative; width: 100%; min-width: 2000px; /* Đường đua dài hơn */
+            height: 90px; border-bottom: 2px dashed rgba(255,255,255,0.2); 
+            position: relative; width: 100%;
         }
         
-        /* Hiệu ứng ngựa chạy nhấp nhô */
-        @keyframes gallop {
-            0% { transform: translateY(0) rotate(0deg); }
-            25% { transform: translateY(-8px) rotate(-2deg); }
-            50% { transform: translateY(0) rotate(0deg); }
-            75% { transform: translateY(-5px) rotate(2deg); }
-            100% { transform: translateY(0) rotate(0deg); }
-        }
-
         .horse-container { 
-            position: absolute; left: 0; bottom: 10px; 
+            position: absolute; left: 0; bottom: 5px; 
             display: flex; flex-direction: column; align-items: center; 
-            will-change: left;
-        }
-        
-        .running {
-            animation: gallop 0.4s infinite ease-in-out;
+            /* Chuyển động tiến lên từ từ và mượt mà */
+            transition: transform 0.1s linear; 
+            will-change: transform;
         }
 
         .horse-name { 
-            background: rgba(0,0,0,0.8); color: white; padding: 3px 10px; 
-            border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 5px;
-            white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.8); color: white; padding: 2px 8px; 
+            border-radius: 10px; font-size: 11px; margin-bottom: 2px; white-space: nowrap;
         }
         
-        .horse-img { 
-            width: 100px; /* Điều chỉnh kích thước ảnh con ngựa */
-            height: auto;
-            display: block;
-        }
+        .horse-img { width: 80px; height: auto; display: block; }
         
         .finish-line { 
-            position: absolute; right: 100px; top: 0; bottom: 0; width: 20px; 
+            position: absolute; right: 80px; top: 0; bottom: 0; width: 15px; 
             background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px); 
-            border-left: 4px solid red; z-index: 10;
+            border-left: 3px solid red; z-index: 10;
         }
         
-        #timer-display { text-align: center; font-size: 48px; font-weight: bold; color: #d32f2f; margin: 10px 0; display: none; }
+        #timer-display { text-align: center; font-size: 40px; font-weight: bold; color: #d32f2f; margin: 10px 0; display: none; }
         #result { 
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             background: white; padding: 40px; border-radius: 20px; 
@@ -72,20 +55,20 @@
 <body>
 
 <div class="setup-panel" id="setup">
-    <h2 style="text-align: center;">🏁 ĐUA NGỰA HÌNH ẢNH THỰC</h2>
+    <h2 style="text-align: center;">🏁 HỆ THỐNG ĐUA NGỰA</h2>
     <div class="input-group">
-        <label>Số lượng (Tối đa 1000):</label>
-        <input type="number" id="horseCount" value="5" min="1" max="1000">
+        <label>Số lượng ngựa:</label>
+        <input type="number" id="horseCount" value="5">
     </div>
     <div class="input-group">
-        <label>Tên ngựa (Cách nhau bằng dấu phẩy):</label>
-        <textarea id="horseNames" placeholder="Xích Thố, Ô Truy, Tuyết Nhạn..."></textarea>
+        <label>Tên ngựa (cách nhau bằng dấu phẩy):</label>
+        <textarea id="horseNames"></textarea>
     </div>
     <div class="input-group" style="display: flex; gap: 10px;">
         <div style="flex: 1;"><label>Phút:</label><input type="number" id="minutes" value="0"></div>
         <div style="flex: 1;"><label>Giây:</label><input type="number" id="seconds" value="15"></div>
     </div>
-    <button onclick="initRace()">BẮT ĐẦU TRẬN ĐẤU</button>
+    <button id="startBtn" onclick="initRace()">BẮT ĐẦU</button>
 </div>
 
 <div id="timer-display">00:00</div>
@@ -93,21 +76,25 @@
 
 <div id="result">
     <h1 id="winner-name"></h1>
-    <button onclick="location.reload()">LÀM TRẬN MỚI</button>
+    <button onclick="location.reload()">ĐUA LẠI</button>
 </div>
 
-<audio id="cheerSound" loop>
-    <source src="https://www.soundjay.com/human/sounds/crowd-cheer-01.mp3" type="audio/mpeg">
+<audio id="cheerSound">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2016/2016-preview.mp3" type="audio/mpeg">
 </audio>
 
 <script>
     let animationId;
-    const horseImgUrl = "https://manhsacotravel.github.io/dua-ngua/horse.png"; // Đảm bảo bạn đã tải ảnh lên GitHub với tên horse.png
+    const horseImgUrl = "horse.png"; // Đảm bảo file này nằm cùng thư mục trên GitHub
 
     function initRace() {
+        // Kích hoạt âm thanh ngay khi bấm nút (Tránh bị trình duyệt chặn)
+        const audio = document.getElementById('cheerSound');
+        audio.play().catch(e => console.log("Âm thanh bị chặn, cần tương tác người dùng"));
+
         const count = parseInt(document.getElementById('horseCount').value);
         const nameInput = document.getElementById('horseNames').value;
-        const duration = (parseInt(document.getElementById('minutes').value) * 60) + parseInt(document.getElementById('seconds').value);
+        const totalSec = (parseInt(document.getElementById('minutes').value) * 60) + parseInt(document.getElementById('seconds').value);
         const names = nameInput.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
         
         const track = document.getElementById('race-track');
@@ -115,22 +102,18 @@
         track.style.display = 'block';
         document.getElementById('setup').style.display = 'none';
         document.getElementById('timer-display').style.display = 'block';
-        document.getElementById('cheerSound').play(); // Chạy âm thanh
 
         const horses = [];
         for (let i = 0; i < count; i++) {
             const lane = document.createElement('div');
             lane.className = 'lane';
-            
             const container = document.createElement('div');
-            container.className = 'horse-container running'; // Thêm class chạy
+            container.className = 'horse-container';
             
-            // Tạo màu sắc ngẫu nhiên bằng CSS filter (hue-rotate)
-            const randomColor = Math.floor(Math.random() * 360);
-            
+            const hue = Math.floor(Math.random() * 360);
             container.innerHTML = `
                 <span class="horse-name">${names[i] || `Ngựa ${i+1}`}</span>
-                <img src="${horseImgUrl}" class="horse-img" style="filter: hue-rotate(${randomColor}deg);">
+                <img src="${horseImgUrl}" class="horse-img" style="filter: hue-rotate(${hue}deg);">
             `;
             
             lane.appendChild(container);
@@ -140,65 +123,55 @@
                 el: container,
                 name: names[i] || `Ngựa ${i+1}`,
                 x: 0,
-                velocity: 0,
-                boost: Math.random() * 0.05
+                finished: false
             });
         }
 
-        startRaceLogic(horses, duration);
+        run(horses, totalSec);
     }
 
-    function startRaceLogic(horses, duration) {
-        const startTime = performance.now();
-        const endTime = startTime + (duration * 1000);
-        const finishLineX = window.innerWidth * 2; // Độ dài đường đua
+    function run(horses, duration) {
+        const start = performance.now();
+        const end = start + (duration * 1000);
+        const finishX = 85; // Điểm dừng tại vạch đích (%)
 
         function frame() {
             const now = performance.now();
-            const elapsed = (now - startTime) / 1000;
-            const remaining = Math.max(0, (endTime - now) / 1000);
+            const elapsed = (now - start) / 1000;
+            const remaining = Math.max(0, (end - now) / 1000);
 
-            // Cập nhật đồng hồ
             document.getElementById('timer-display').innerText = 
                 `${Math.floor(remaining/60).toString().padStart(2,'0')}:${Math.floor(remaining%60).toString().padStart(2,'0')}`;
 
-            let leaderX = 0;
+            let allFinished = true;
+
             horses.forEach(h => {
-                const progress = elapsed / duration;
-                const randomFactor = Math.random() * 0.3;
-                
-                // Thuật toán di chuyển chỉ tiến, có bứt tốc
-                h.velocity += (progress * 5 + randomFactor + h.boost) * 0.1;
-                h.velocity *= 0.92; // Ma sát
-                h.x += h.velocity;
+                if (!h.finished) {
+                    allFinished = false;
+                    const progress = elapsed / duration;
+                    // Tốc độ tiến lên từ từ, không nhảy nhót
+                    const randomFactor = Math.random() * 0.5;
+                    let nextX = (progress * finishX) + (randomFactor * progress * 10);
 
-                // Giới hạn không cho vượt quá vạch đích trước thời gian
-                const maxAllowedX = progress * 90; 
-                if (h.x > maxAllowedX) h.x = maxAllowedX;
-
-                h.el.style.left = h.x + "%";
-                if (h.x > leaderX) leaderX = h.x;
+                    if (nextX >= finishX) {
+                        nextX = finishX;
+                        h.finished = true; // Dừng lại khi chạm đích
+                    }
+                    
+                    h.x = nextX;
+                    h.el.style.transform = `translateX(${h.x}vw)`;
+                }
             });
 
-            // Camera bám theo con dẫn đầu
-            if (leaderX > 30) {
-                document.getElementById('race-track').scrollLeft = (leaderX * 20);
-            }
-
-            if (now < endTime) {
+            if (now < end && !allFinished) {
                 animationId = requestAnimationFrame(frame);
             } else {
                 const winner = horses.reduce((p, c) => (p.x > c.x) ? p : c);
-                showWinner(winner.name);
+                document.getElementById('winner-name').innerText = "🏆 THẮNG: " + winner.name;
+                document.getElementById('result').style.display = 'block';
             }
         }
         animationId = requestAnimationFrame(frame);
-    }
-
-    function showWinner(name) {
-        document.getElementById('cheerSound').pause();
-        document.getElementById('winner-name').innerText = "🏆 CHIẾN THẮNG: " + name;
-        document.getElementById('result').style.display = 'block';
     }
 </script>
 </body>
