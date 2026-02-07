@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Ngựa Chuyên Nghiệp v4</title>
+    <title>Đua Ngựa Kịch Tính v5</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .setup-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto 20px auto; }
@@ -18,14 +18,13 @@
             max-height: 80vh; overflow-y: auto; overflow-x: hidden;
         }
         .lane { 
-            height: 90px; border-bottom: 2px dashed rgba(255,255,255,0.2); 
+            height: 95px; border-bottom: 2px dashed rgba(255,255,255,0.2); 
             position: relative; width: 100%;
         }
         
         .horse-container { 
             position: absolute; left: 0; bottom: 5px; 
             display: flex; flex-direction: column; align-items: center; 
-            /* Chuyển động tiến lên từ từ và mượt mà */
             transition: transform 0.1s linear; 
             will-change: transform;
         }
@@ -35,10 +34,10 @@
             border-radius: 10px; font-size: 11px; margin-bottom: 2px; white-space: nowrap;
         }
         
-        .horse-img { width: 80px; height: auto; display: block; }
+        .horse-img { width: 90px; height: auto; display: block; }
         
         .finish-line { 
-            position: absolute; right: 80px; top: 0; bottom: 0; width: 15px; 
+            position: absolute; right: 100px; top: 0; bottom: 0; width: 15px; 
             background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px); 
             border-left: 3px solid red; z-index: 10;
         }
@@ -48,27 +47,27 @@
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             background: white; padding: 40px; border-radius: 20px; 
             box-shadow: 0 0 100px rgba(0,0,0,0.5); text-align: center; 
-            display: none; z-index: 1000;
+            display: none; z-index: 1000; border: 5px solid #FFD700;
         }
     </style>
 </head>
 <body>
 
 <div class="setup-panel" id="setup">
-    <h2 style="text-align: center;">🏁 HỆ THỐNG ĐUA NGỰA</h2>
+    <h2 style="text-align: center;">🏁 TRƯỜNG ĐUA NGỰA NGẪU NHIÊN</h2>
     <div class="input-group">
         <label>Số lượng ngựa:</label>
         <input type="number" id="horseCount" value="5">
     </div>
     <div class="input-group">
         <label>Tên ngựa (cách nhau bằng dấu phẩy):</label>
-        <textarea id="horseNames"></textarea>
+        <textarea id="horseNames" placeholder="Nhập tên ngựa tại đây..."></textarea>
     </div>
     <div class="input-group" style="display: flex; gap: 10px;">
         <div style="flex: 1;"><label>Phút:</label><input type="number" id="minutes" value="0"></div>
-        <div style="flex: 1;"><label>Giây:</label><input type="number" id="seconds" value="15"></div>
+        <div style="flex: 1;"><label>Giây:</label><input type="number" id="seconds" value="20"></div>
     </div>
-    <button id="startBtn" onclick="initRace()">BẮT ĐẦU</button>
+    <button id="startBtn" onclick="initRace()">BẮT ĐẦU ĐUA</button>
 </div>
 
 <div id="timer-display">00:00</div>
@@ -76,21 +75,22 @@
 
 <div id="result">
     <h1 id="winner-name"></h1>
-    <button onclick="location.reload()">ĐUA LẠI</button>
+    <p style="font-size: 20px;">🏆 ĐÃ VỀ ĐÍCH ĐẦU TIÊN!</p>
+    <button onclick="location.reload()" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">ĐUA LẠI</button>
 </div>
 
-<audio id="cheerSound">
+<audio id="cheerSound" loop>
     <source src="https://assets.mixkit.co/active_storage/sfx/2016/2016-preview.mp3" type="audio/mpeg">
 </audio>
 
 <script>
     let animationId;
-    const horseImgUrl = "horse.png"; // Đảm bảo file này nằm cùng thư mục trên GitHub
+    const horseImgUrl = "horse.png"; 
 
     function initRace() {
-        // Kích hoạt âm thanh ngay khi bấm nút (Tránh bị trình duyệt chặn)
         const audio = document.getElementById('cheerSound');
-        audio.play().catch(e => console.log("Âm thanh bị chặn, cần tương tác người dùng"));
+        audio.currentTime = 0;
+        audio.play().catch(e => console.log("Yêu cầu tương tác để phát nhạc"));
 
         const count = parseInt(document.getElementById('horseCount').value);
         const nameInput = document.getElementById('horseNames').value;
@@ -119,21 +119,26 @@
             lane.appendChild(container);
             track.appendChild(lane);
             
+            // Thuật toán: Mỗi con có tốc độ cơ bản (Base Speed) chênh lệch tối đa 30%
+            const baseFactor = 0.85 + (Math.random() * 0.30); // Từ 0.85 đến 1.15
+
             horses.push({
                 el: container,
                 name: names[i] || `Ngựa ${i+1}`,
                 x: 0,
-                finished: false
+                finished: false,
+                baseFactor: baseFactor,
+                currentVelocity: 0
             });
         }
 
-        run(horses, totalSec);
+        runRace(horses, totalSec);
     }
 
-    function run(horses, duration) {
+    function runRace(horses, duration) {
         const start = performance.now();
         const end = start + (duration * 1000);
-        const finishX = 85; // Điểm dừng tại vạch đích (%)
+        const finishX = 85; 
 
         function frame() {
             const now = performance.now();
@@ -143,31 +148,44 @@
             document.getElementById('timer-display').innerText = 
                 `${Math.floor(remaining/60).toString().padStart(2,'0')}:${Math.floor(remaining%60).toString().padStart(2,'0')}`;
 
-            let allFinished = true;
+            let winnerFound = null;
 
             horses.forEach(h => {
                 if (!h.finished) {
-                    allFinished = false;
-                    const progress = elapsed / duration;
-                    // Tốc độ tiến lên từ từ, không nhảy nhót
-                    const randomFactor = Math.random() * 0.5;
-                    let nextX = (progress * finishX) + (randomFactor * progress * 10);
+                    const timeProgress = elapsed / duration;
+                    
+                    // Thuật toán ngẫu nhiên: 
+                    // 1. Tiến độ chung dựa trên thời gian
+                    // 2. Nhân với hệ số tốc độ riêng (baseFactor)
+                    // 3. Thêm một chút biến động ngẫu nhiên theo từng khung hình (Luck factor)
+                    const luck = 0.98 + (Math.random() * 0.04); // Biến động nhỏ để mượt
+                    
+                    // Vị trí mục tiêu lý tưởng
+                    let targetX = timeProgress * finishX * h.baseFactor * luck;
 
-                    if (nextX >= finishX) {
-                        nextX = finishX;
-                        h.finished = true; // Dừng lại khi chạm đích
+                    // Đảm bảo ngựa không đứng yên hoặc chạy lùi
+                    if (targetX < h.x) targetX = h.x + 0.01;
+
+                    if (targetX >= finishX) {
+                        targetX = finishX;
+                        h.finished = true;
+                        if (!winnerFound) winnerFound = h;
                     }
                     
-                    h.x = nextX;
+                    h.x = targetX;
                     h.el.style.transform = `translateX(${h.x}vw)`;
                 }
             });
 
-            if (now < end && !allFinished) {
+            if (now < end && !winnerFound) {
                 animationId = requestAnimationFrame(frame);
             } else {
-                const winner = horses.reduce((p, c) => (p.x > c.x) ? p : c);
-                document.getElementById('winner-name').innerText = "🏆 THẮNG: " + winner.name;
+                // Dừng âm thanh khi có người thắng
+                document.getElementById('cheerSound').pause();
+                
+                // Tìm người có vị trí xa nhất thực tế (nếu hết thời gian mà chưa ai chạm đích)
+                const winner = winnerFound || horses.reduce((p, c) => (p.x > c.x) ? p : c);
+                document.getElementById('winner-name').innerText = winner.name;
                 document.getElementById('result').style.display = 'block';
             }
         }
