@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Cuộc Đua Kỳ Thú</title>
+    <style>
+        body { font-family: sans-serif; background: #e0e0e0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        #game-box { width: 80%; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .track { position: relative; width: 100%; height: 80px; border-bottom: 2px dashed #ccc; overflow: hidden; }
+        .runner { position: absolute; left: 0; font-size: 50px; transition: left 0.1s linear; line-height: 80px; }
+        .finish-line { position: absolute; right: 10px; top: 0; bottom: 0; width: 5px; background: red; }
+        h1 { text-align: center; color: #333; }
+        #winner-msg { text-align: center; font-size: 24px; font-weight: bold; color: #d9534f; margin-top: 20px; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <h1>🏁 Cuộc đua bắt đầu sau 3 giây...</h1>
+    <div class="track"><div id="p1" class="runner">🐎</div><div class="finish-line"></div></div>
+    <div class="track"><div id="p2" class="runner">🐎</div><div class="finish-line"></div></div>
+    <div class="track"><div id="p3" class="runner">🐎</div><div class="finish-line"></div></div>
+    <div id="winner-msg"></div>
+</div>
+
+<script>
+    // Hàm này sẽ tự chạy ngay khi trang web tải xong
+    window.onload = function() {
+        let countdown = 3;
+        const title = document.querySelector('h1');
+
+        // Đếm ngược trước khi đua
+        const timer = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                title.innerText = "🏁 Cuộc đua bắt đầu sau " + countdown + " giây...";
+            } else {
+                title.innerText = "🚀 ĐUAAAAA!";
+                clearInterval(timer);
+                startRace(); // Gọi hàm đua
+            }
+        }, 1000);
+    };
+
+    function startRace() {
+        let p1 = 0, p2 = 0, p3 = 0;
+        const finishLine = 92; // % chiều dài đường đua
+        
+        const raceInterval = setInterval(() => {
+            // Tạo tốc độ ngẫu nhiên khác nhau cho mỗi con ngựa
+            p1 += Math.random() * 1.8;
+            p2 += Math.random() * 1.8;
+            p3 += Math.random() * 1.8;
+
+            document.getElementById('p1').style.left = p1 + "%";
+            document.getElementById('p2').style.left = p2 + "%";
+            document.getElementById('p3').style.left = p3 + "%";
+
+            // Kiểm tra người thắng
+            if (p1 >= finishLine || p2 >= finishLine || p3 >= finishLine) {
+                clearInterval(raceInterval);
+                let winner = p1 >= finishLine ? "Ngựa số 1" : (p2 >= finishLine ? "Ngựa số 2" : "Ngựa số 3");
+                
+                const msg = document.getElementById('winner-msg');
+                msg.innerText = "🏆 CHÚC MỪNG: " + winner + " ĐÃ CHIẾN THẮNG!";
+                msg.style.display = "block";
+                document.querySelector('h1').innerText = "KẾT THÚC!";
+            }
+        }, 50);
+    }
+</script>
+
+</body>
+</html>
