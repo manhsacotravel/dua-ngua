@@ -103,14 +103,14 @@
             
             const hue = Math.floor(Math.random() * 360);
             container.innerHTML = `
-                <span class="horse-name">${names[i] || `Mã ${i+1}`}</span>
+                <span class="horse-name">${names[i] || `Ngựa ${i+1}`}</span>
                 <img src="horse2.gif" class="horse-img" style="filter: hue-rotate(${hue}deg);">
             `;
             
             track.appendChild(container);
             horses.push({
                 el: container,
-                name: names[i] || `Mã ${i+1}`,
+                name: names[i] || `Ngựa ${i+1}`,
                 x: 0,
                 velocity: 0,
                 luckFactor: 0.85 + (Math.random() * 0.30), // Tố chất ban đầu
@@ -185,4 +185,5 @@
 </script>
 </body>
 </html>
+
 
