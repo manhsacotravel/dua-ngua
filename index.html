@@ -3,56 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Ngựa Kịch Tính v1.2</title>
+    <title>Đua Ngựa Kịch Tính v1.6.1 - Giao Diện Cao Cấp</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; overflow: hidden; }
-        .version-tag { text-align: right; font-size: 12px; color: #888; font-style: italic; padding-right: 10px; }
-        .setup-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: 20px auto; position: relative; z-index: 2000; }
-        .input-group { margin-bottom: 12px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { background: #28a745; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background: #1e293b; margin: 0; padding: 10px; overflow: hidden; }
+        .version-tag { text-align: right; font-size: 12px; color: #94a3b8; font-style: italic; padding-right: 10px; }
+        
+        /* BẢNG SETUP HIỆN ĐẠI */
+        .setup-panel { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 500px; margin: 40px auto; position: relative; z-index: 2000; border: 1px solid #e2e8f0; }
+        .input-group { margin-bottom: 16px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; color: #334155; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 14px; transition: all 0.3s; }
+        input:focus, textarea:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        button { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; box-shadow: 0 4px 6px rgba(22,163,74,0.2); transition: all 0.2s; }
+        button:hover { transform: translateY(-1px); box-shadow: 0 6px 12px rgba(22,163,74,0.3); }
 
+        /* ĐƯỜNG ĐUA */
         #race-track { 
-            background: #2e7d32; border: 4px solid #1b5e20; border-radius: 8px; 
+            background: linear-gradient(to bottom, #15803d, #166534); border: 4px solid #14532d; border-radius: 12px; 
             position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
-            display: none; overflow: hidden;
+            display: none; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.4);
         }
         
+        /* CONTAINER NGỰA & TAG TÊN */
         .horse-container { 
             position: absolute; left: 0; 
             display: flex; flex-direction: column; align-items: center; 
             will-change: transform;
             z-index: 50;
+            transition: z-index 0.1s;
         }
 
-        .horse-name { background: rgba(0,0,0,0.7); color: white; padding: 1px 6px; border-radius: 8px; font-size: 10px; white-space: nowrap; margin-bottom: 2px; }
-        .horse-img { width: 65px; height: auto; display: block; } 
+        /* Làm đẹp lại tag tên ngựa */
+        .horse-name { 
+            background: linear-gradient(135deg, #1e293b, #0f172a); 
+            color: #f8fafc; 
+            padding: 3px 10px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            font-weight: 600;
+            white-space: nowrap; 
+            margin-bottom: 2px; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.15);
+            transition: all 0.2s ease;
+        }
         
-        .finish-line { position: absolute; right: 80px; top: 0; bottom: 0; width: 12px; background: repeating-linear-gradient(0deg, #fff, #fff 10px, #000 10px, #000 20px); border-left: 3px solid red; }
+        /* Đổi màu động cho tag tên khi lọt Top dẫn đầu */
+        .horse-container.top-1 { z-index: 100; }
+        .horse-container.top-1 .horse-name { background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; border-color: #fef08a; font-weight: 700; box-shadow: 0 0 10px rgba(234,179,8,0.5); }
+        .horse-container.top-2 .horse-name { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; border-color: #e2e8f0; }
+        .horse-container.top-3 .horse-name { background: linear-gradient(135deg, #b45309, #78350f); color: #fff; border-color: #fed7aa; }
+
+        .horse-img { width: 70px; height: auto; display: block; } 
         
-        #timer-display { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 32px; font-weight: bold; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); z-index: 100; display: none; }
+        /* VẠCH ĐÍCH CHUYÊN NGHIỆP */
+        .finish-line { 
+            position: absolute; right: 80px; top: 0; bottom: 0; width: 16px; 
+            background: repeating-linear-gradient(0deg, #fff, #fff 8px, #000 8px, #000 16px); 
+            border-left: 4px solid #ef4444;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
         
+        /* ĐỒNG HỒ BẤM GIỜ KIỂU THỂ THAO */
+        #timer-display { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+            font-size: 38px; font-weight: 800; color: #ffffff; 
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 0 0 12px rgba(255,255,255,0.6), 2px 2px 4px rgba(0,0,0,0.5); 
+            z-index: 100; display: none; 
+            background: rgba(0,0,0,0.4); padding: 2px 15px; border-radius: 8px; backdrop-filter: blur(4px);
+        }
+        
+        /* BẢNG XẾP HẠNG LIVE (GLASSMORPHISM) */
+        #live-leaderboard {
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            background: rgba(15, 23, 42, 0.8); 
+            backdrop-filter: blur(8px);
+            color: white; 
+            padding: 14px 18px; 
+            border-radius: 12px; 
+            font-size: 13px;
+            z-index: 100; 
+            display: none; 
+            min-width: 180px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        #live-leaderboard h4 { 
+            margin: 0 0 10px 0; 
+            border-bottom: 1px solid rgba(255,255,255,0.1); 
+            padding-bottom: 6px; 
+            color: #facc15; 
+            text-align: center;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1.5px;
+        }
+        .live-rank-item { 
+            margin: 6px 0; 
+            font-weight: 600; 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.03);
+        }
+        .live-rank-item.rank-gold { color: #facc15; background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.2); }
+        .live-rank-item.rank-silver { color: #cbd5e1; }
+        .live-rank-item.rank-bronze { color: #fb923c; }
+
+        /* BẢNG KẾT QUẢ CHUNG CUỘC */
         #result { 
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            background: white; padding: 30px; border-radius: 20px; 
-            box-shadow: 0 0 100px rgba(0,0,0,0.8); text-align: center; 
-            display: none; z-index: 3000; border: 4px solid #FFD700; min-width: 300px;
+            background: white; padding: 35px; border-radius: 24px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; 
+            display: none; z-index: 3000; border: 4px solid #facc15; min-width: 320px;
         }
-        .rank-item { margin: 10px 0; font-size: 20px; font-weight: bold; padding: 10px; border-radius: 10px; }
-        .rank-1 { background: #fff3cd; color: #856404; font-size: 26px; }
-        .rank-2 { background: #e2e3e5; color: #383d41; }
-        .rank-3 { background: #f8d7da; color: #721c24; }
+        #result h2 { color: #1e293b; margin-top: 0; font-size: 24px; letter-spacing: 1px; }
+        .rank-item { margin: 12px 0; font-size: 20px; font-weight: bold; padding: 12px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .rank-1 { background: linear-gradient(135deg, #fef08a, #fef9c3); color: #856404; font-size: 26px; border: 1px solid #fde047; }
+        .rank-2 { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #334155; border: 1px solid #cbd5e1; }
+        .rank-3 { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #7c2d12; border: 1px solid #fdba74; }
     </style>
 </head>
 <body>
 
 <div class="setup-panel" id="setup">
-    <div class="version-tag">Phiên bản 1.5</div>
-    <h2 style="text-align: center; margin: 0 0 15px 0;">🏁 ĐUA NGỰA CHUYÊN NGHIỆP</h2>
+    <div class="version-tag">Phiên bản 1.6.1 (Premium UI)</div>
+    <h2 style="text-align: center; margin: 0 0 20px 0; color: #1e293b; font-weight: 800; letter-spacing: -0.5px;">🏁 ĐUA NGỰA CHUYÊN NGHIỆP</h2>
     <div class="input-group"><label>Số lượng ngựa:</label><input type="number" id="horseCount" value="10"></div>
-    <div class="input-group"><label>Tên ngựa:</label><textarea id="horseNames" placeholder="Nhập tên ngăn cách bằng dấu phẩy..."></textarea></div>
-    <div class="input-group" style="display: flex; gap: 10px;">
+    <div class="input-group"><label>Tên ngựa:</label><textarea id="horseNames" rows="3" placeholder="Nhập tên ngăn cách bằng dấu phẩy..."></textarea></div>
+    <div class="input-group" style="display: flex; gap: 12px;">
         <div style="flex: 1;"><label>Phút:</label><input type="number" id="minutes" value="0"></div>
         <div style="flex: 1;"><label>Giây:</label><input type="number" id="seconds" value="20"></div>
     </div>
@@ -60,12 +144,18 @@
 </div>
 
 <div id="timer-display">00:00</div>
+
+<div id="live-leaderboard">
+    <h4>📊 ĐANG DẪN ĐẦU</h4>
+    <div id="live-list"></div>
+</div>
+
 <div id="race-track"></div>
 
 <div id="result">
-    <h2 style="margin-top: 0;">🏆 KẾT QUẢ CHUNG CUỘC</h2>
+    <h2>🏆 KẾT QUẢ CHUNG CUỘC</h2>
     <div id="podium"></div>
-    <button onclick="location.reload()" style="margin-top: 20px; background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">ĐUA LẠI</button>
+    <button onclick="location.reload()" style="margin-top: 20px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(37,99,235,0.2);">ĐUA LẠI</button>
 </div>
 
 <audio id="cheerSound" loop preload="auto">
@@ -91,6 +181,7 @@
         track.style.display = 'block';
         document.getElementById('setup').style.display = 'none';
         document.getElementById('timer-display').style.display = 'block';
+        document.getElementById('live-leaderboard').style.display = 'block';
 
         const trackHeight = track.clientHeight - 80;
         const spacing = trackHeight / (count > 1 ? count - 1 : 1);
@@ -113,7 +204,7 @@
                 name: names[i] || `Ngựa ${i+1}`,
                 x: 0,
                 velocity: 0,
-                luckFactor: 0.85 + (Math.random() * 0.30), // Tố chất ban đầu
+                luckFactor: 0.85 + (Math.random() * 0.30),
                 finished: false
             });
         }
@@ -124,13 +215,12 @@
     function runRace(horses, duration) {
         const startTime = performance.now();
         const endTime = startTime + (duration * 1000);
-        const finishX = 88; // Vạch đích (%)
+        const finishX = 88;
 
         function frame(currentTime) {
             const elapsed = (currentTime - startTime) / 1000;
             const remaining = Math.max(0, (endTime - currentTime) / 1000);
 
-            // Cứ mỗi 3 giây (3000ms), cập nhật lại luckFactor (chênh lệch tối đa 30%)
             if (currentTime - lastLuckUpdate > 3000) {
                 horses.forEach(h => {
                     h.luckFactor = 0.85 + (Math.random() * 0.30);
@@ -143,8 +233,6 @@
 
             horses.forEach(h => {
                 if (!h.finished) {
-                    // Thuật toán di chuyển mượt: 
-                    // Tốc độ lý tưởng để về đích đúng giờ * Tố chất ngẫu nhiên
                     const idealVelocity = finishX / duration / 60; 
                     const currentFrameSpeed = idealVelocity * h.luckFactor * (0.98 + Math.random() * 0.04);
                     
@@ -156,10 +244,31 @@
                         winners.push(h.name);
                     }
                     
-                    // Sử dụng transform để mượt hơn left
                     h.el.style.transform = `translateX(${h.x}vw)`;
                 }
             });
+
+            // LOGIC CẬP NHẬT THỨ HẠNG TRỰC TIẾP & ĐỔI MÀU CƠ THỂ/TAG
+            const sortedHorses = [...horses].sort((a, b) => b.x - a.x);
+            
+            // Xóa hết class top cũ trên tất cả các con ngựa
+            horses.forEach(h => {
+                h.el.classList.remove('top-1', 'top-2', 'top-3');
+            });
+
+            const liveList = document.getElementById('live-list');
+            liveList.innerHTML = '';
+            
+            const medals = ['🥇', '🥈', '🥉'];
+            const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
+
+            for (let i = 0; i < Math.min(sortedHorses.length, 3); i++) {
+                // Thêm class màu sắc động cho chú ngựa thực tế trên sân đua
+                sortedHorses[i].el.classList.add(`top-${i+1}`);
+                
+                // Cập nhật text vào bảng live bên phải góc màn hình
+                liveList.innerHTML += `<div class="live-rank-item ${rankClasses[i]}"><span>${medals[i]} ${sortedHorses[i].name}</span></div>`;
+            }
 
             if (currentTime < endTime && winners.length < horses.length) {
                 animationId = requestAnimationFrame(frame);
@@ -172,6 +281,7 @@
 
     function showFinalResult() {
         document.getElementById('cheerSound').pause();
+        document.getElementById('live-leaderboard').style.display = 'none';
         const podium = document.getElementById('podium');
         podium.innerHTML = '';
         
@@ -185,9 +295,3 @@
 </script>
 </body>
 </html>
-
-
-
-
-
-
