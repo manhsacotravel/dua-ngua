@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Ngựa Kịch Tính v1.6.1 - Giao Diện Cao Cấp</title>
+    <title>Đua Ngựa Kịch Tính v1.6.2 - Fixed Race Logic</title>
     <style>
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background: #1e293b; margin: 0; padding: 10px; overflow: hidden; }
         .version-tag { text-align: right; font-size: 12px; color: #94a3b8; font-style: italic; padding-right: 10px; }
@@ -33,7 +33,7 @@
             transition: z-index 0.1s;
         }
 
-        /* Làm đẹp lại tag tên ngựa */
+        /* Tag tên ngựa cao cấp */
         .horse-name { 
             background: linear-gradient(135deg, #1e293b, #0f172a); 
             color: #f8fafc; 
@@ -132,7 +132,7 @@
 <body>
 
 <div class="setup-panel" id="setup">
-    <div class="version-tag">Phiên bản 1.6.1 (Premium UI)</div>
+    <div class="version-tag">Phiên bản 1.6.2 (Fixed Logic)</div>
     <h2 style="text-align: center; margin: 0 0 20px 0; color: #1e293b; font-weight: 800; letter-spacing: -0.5px;">🏁 ĐUA NGỰA CHUYÊN NGHIỆP</h2>
     <div class="input-group"><label>Số lượng ngựa:</label><input type="number" id="horseCount" value="10"></div>
     <div class="input-group"><label>Tên ngựa:</label><textarea id="horseNames" rows="3" placeholder="Nhập tên ngăn cách bằng dấu phẩy..."></textarea></div>
@@ -145,6 +145,7 @@
 
 <div id="timer-display">00:00</div>
 
+<!-- KHUNG HIỂN THỊ BẢNG XẾP HẠNG LIVE -->
 <div id="live-leaderboard">
     <h4>📊 ĐANG DẪN ĐẦU</h4>
     <div id="live-list"></div>
@@ -168,6 +169,7 @@
     let lastLuckUpdate = 0;
 
     function initRace() {
+        winners = []; // Reset mảng người thắng cuộc về rỗng mỗi khi bắt đầu đua mới
         const audio = document.getElementById('cheerSound');
         audio.play().catch(() => {});
 
@@ -248,10 +250,9 @@
                 }
             });
 
-            // LOGIC CẬP NHẬT THỨ HẠNG TRỰC TIẾP & ĐỔI MÀU CƠ THỂ/TAG
+            // LOGIC CẬP NHẬT THỨ HẠNG TRỰC TIẾP
             const sortedHorses = [...horses].sort((a, b) => b.x - a.x);
             
-            // Xóa hết class top cũ trên tất cả các con ngựa
             horses.forEach(h => {
                 h.el.classList.remove('top-1', 'top-2', 'top-3');
             });
@@ -263,14 +264,13 @@
             const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
 
             for (let i = 0; i < Math.min(sortedHorses.length, 3); i++) {
-                // Thêm class màu sắc động cho chú ngựa thực tế trên sân đua
                 sortedHorses[i].el.classList.add(`top-${i+1}`);
-                
-                // Cập nhật text vào bảng live bên phải góc màn hình
                 liveList.innerHTML += `<div class="live-rank-item ${rankClasses[i]}"><span>${medals[i]} ${sortedHorses[i].name}</span></div>`;
             }
 
-            if (currentTime < endTime && winners.length < horses.length) {
+            // SỬA ĐIỀU KIỆN DỪNG: Cuộc đua tiếp tục chạy nếu chưa hết giờ VÀ số lượng ngựa về đích chưa đủ top 3 (hoặc tổng số ngựa tham gia nếu ít hơn 3)
+            const targetWinnersCount = Math.min(horses.length, 3);
+            if (currentTime < endTime && winners.length < targetWinnersCount) {
                 animationId = requestAnimationFrame(frame);
             } else {
                 setTimeout(showFinalResult, 500);
@@ -280,6 +280,7 @@
     }
 
     function showFinalResult() {
+        cancelAnimationFrame(animationId);
         document.getElementById('cheerSound').pause();
         document.getElementById('live-leaderboard').style.display = 'none';
         const podium = document.getElementById('podium');
