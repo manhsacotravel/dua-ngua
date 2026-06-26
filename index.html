@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Ngựa Kịch Tính v1.6.4 - Engine Siêu Ổn Định</title>
+    <title>Đua Ngựa Kịch Tính v1.6.5 - Realtime Speed + Top5 Names</title>
     <style>
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background: #1e293b; margin: 0; padding: 10px; overflow: hidden; }
         .version-tag { text-align: right; font-size: 12px; color: #94a3b8; font-style: italic; padding-right: 10px; }
@@ -44,15 +44,28 @@
             margin-bottom: 1px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.25);
             border: 1px solid rgba(255,255,255,0.15);
+            /* Mặc định ẩn tag tên để giảm tải DOM khi số ngựa lớn (51-80+ con).
+               Chỉ hiện tên cho top 5 đang dẫn đầu (class .show-name ở dưới),
+               các con còn lại chỉ hiện ảnh ngựa, không hiện tên. */
+            visibility: hidden;
+            height: 0;
+            overflow: hidden;
+        }
+        .horse-container.show-name .horse-name {
+            visibility: visible;
+            height: auto;
+            overflow: visible;
         }
         
-        /* Đổi màu động cho tag tên khi lọt Top dẫn đầu */
+        /* Đổi màu động cho tag tên khi lọt Top dẫn đầu (Top 5) */
         .horse-container.top-1 { z-index: 100; }
         .horse-container.top-1 .horse-name { background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; border-color: #fef08a; font-weight: 700; box-shadow: 0 0 8px rgba(234,179,8,0.5); }
         .horse-container.top-2 .horse-name { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; border-color: #e2e8f0; }
         .horse-container.top-3 .horse-name { background: linear-gradient(135deg, #b45309, #78350f); color: #fff; border-color: #fed7aa; }
+        .horse-container.top-4 .horse-name,
+        .horse-container.top-5 .horse-name { background: linear-gradient(135deg, #1e293b, #0f172a); color: #f8fafc; border-color: rgba(255,255,255,0.2); }
 
-        .horse-img { width: 50px; height: auto; display: block; } 
+        .horse-img { width: 55px; height: auto; display: block; } /* Thu nhỏ nhẹ kích thước ngựa để vừa khi nâng số lượng con */
         
         /* VẠCH ĐÍCH CHUYÊN NGHIỆP */
         .finish-line { 
@@ -130,7 +143,7 @@
 <body>
 
 <div class="setup-panel" id="setup">
-    <div class="version-tag">Phiên bản 1.6.4 (Super Engine)</div>
+    <div class="version-tag">Phiên bản 1.6.5 (Realtime Speed + Top5 Names)</div>
     <h2 style="text-align: center; margin: 0 0 20px 0; color: #1e293b; font-weight: 800; letter-spacing: -0.5px;">🏁 ĐUA NGỰA CHUYÊN NGHIỆP</h2>
     <div class="input-group"><label>Số lượng ngựa:</label><input type="number" id="horseCount" value="10"></div>
     <div class="input-group"><label>Tên ngựa:</label><textarea id="horseNames" rows="3" placeholder="Nhập tên ngăn cách bằng dấu phẩy..."></textarea></div>
@@ -164,13 +177,12 @@
     let animationId;
     let winners = [];
     let lastLuckUpdate = 0;
-    let isRaceEnded = false;
+    let isRaceEnded = false; // Biến cờ bảo vệ, tránh gọi hiển thị kết quả nhiều lần
+    let failsafeTimer = null;
 
     function initRace() {
         winners = []; 
         isRaceEnded = false;
-        lastLuckUpdate = 0;
-        
         const audio = document.getElementById('cheerSound');
         audio.play().catch(() => {});
 
@@ -186,9 +198,13 @@
         document.getElementById('timer-display').style.display = 'block';
         document.getElementById('live-leaderboard').style.display = 'block';
 
+        // Tính toán khoảng cách thông minh hơn để không bị tràn màn hình khi có 40 con
         const trackHeight = track.clientHeight - 60;
         const spacing = count > 1 ? trackHeight / count : trackHeight;
 
+        // Dùng DocumentFragment để chèn hàng loạt ngựa vào DOM 1 lần duy nhất,
+        // thay vì appendChild() từng con một (vốn rất chậm khi count >= 51).
+        const fragment = document.createDocumentFragment();
         const horses = [];
         for (let i = 0; i < count; i++) {
             const container = document.createElement('div');
@@ -201,7 +217,7 @@
                 <img src="horse2.gif" class="horse-img" style="filter: hue-rotate(${hue}deg);">
             `;
             
-            track.appendChild(container);
+            fragment.appendChild(container);
             horses.push({
                 el: container,
                 name: names[i] || `Ngựa ${i+1}`,
@@ -210,6 +226,7 @@
                 finished: false
             });
         }
+        track.appendChild(fragment);
 
         runRace(horses, totalSec);
     }
@@ -218,20 +235,43 @@
         const startTime = performance.now();
         const endTime = startTime + (duration * 1000);
         const finishX = 88;
-        const targetWinnersCount = Math.min(horses.length, 3);
+        const targetWinnersCount = Math.min(horses.length, 3); // Cần tìm đủ số lượng top 3
+        let lastLeaderboardUpdate = 0;
+        let lastFrameTime = startTime; // dùng để tính delta-time thực tế giữa các frame, không phụ thuộc framerate
+
+        // FAILSAFE: cơ chế dự phòng độc lập với requestAnimationFrame.
+        // Khi số lượng ngựa quá lớn (51+), thao tác DOM mỗi frame (sort + rebuild innerHTML
+        // cho từng ngựa) có thể làm trình duyệt quá tải, khiến rAF bị delay/treo gần như
+        // vô hạn (đặc biệt nếu tab mất focus hoặc máy yếu). Khi đó điều kiện
+        // "currentTime >= endTime" không bao giờ được kiểm tra vì nó nằm bên trong frame().
+        // setTimeout này không phụ thuộc rAF nên luôn đảm bảo game kết thúc đúng giờ.
+        failsafeTimer = setTimeout(() => {
+            if (!isRaceEnded) {
+                isRaceEnded = true;
+                cancelAnimationFrame(animationId);
+                finalizeRemainingWinners(horses, targetWinnersCount);
+                showFinalResult();
+            }
+        }, duration * 1000 + 1000); // dư 1s để rAF có cơ hội tự kết thúc trước nếu máy đủ khỏe
 
         function frame(currentTime) {
-            // NẾU TRẬN ĐẤU ĐÃ KẾT THÚC, NGẮT NGAY LẬP TỨC KHÔNG CHO CHẠY CODE PHÍA DƯỚI
-            if (isRaceEnded) return;
+            if (isRaceEnded) return; // failsafe đã xử lý, không làm gì thêm
 
-            const elapsed = (currentTime - startTime) / 1000;
+            // Delta-time thực tế kể từ frame trước (giây). Dùng cách này thay vì
+            // giả định cố định "60fps" để tốc độ ngựa luôn đúng với thời gian thực,
+            // bất kể framerate thực tế của máy là 30fps, 60fps hay 144fps.
+            // Đây chính là nguyên nhân khiến đoàn ngựa "đi chưa hết nửa đường đã hết giờ":
+            // công thức cũ giả định 60 frame/giây, nhưng khi máy chạy chậm hơn 60fps
+            // (rất dễ xảy ra với 80 ngựa), số frame thực tế ít hơn dự kiến nên quãng
+            // đường đi được cũng ít hơn so với khoảng cách cần đi (finishX).
+            const deltaTime = Math.min((currentTime - lastFrameTime) / 1000, 0.1); // cap 0.1s tránh nhảy cóc khi tab bị tạm dừng
+            lastFrameTime = currentTime;
+
             const remaining = Math.max(0, (endTime - currentTime) / 1000);
-
-            if (lastLuckUpdate === 0) lastLuckUpdate = currentTime;
 
             if (currentTime - lastLuckUpdate > 3000) {
                 horses.forEach(h => {
-                    if (!h.finished) h.luckFactor = 0.85 + (Math.random() * 0.30);
+                    h.luckFactor = 0.85 + (Math.random() * 0.30);
                 });
                 lastLuckUpdate = currentTime;
             }
@@ -241,17 +281,18 @@
 
             horses.forEach(h => {
                 if (!h.finished) {
-                    const idealVelocity = finishX / duration / 60; 
-                    const currentFrameSpeed = idealVelocity * h.luckFactor * (0.98 + Math.random() * 0.04);
+                    // Tốc độ lý tưởng: đi hết finishX trong đúng "duration" giây,
+                    // tính theo đơn vị vw/giây (không còn chia /60 theo frame nữa).
+                    const idealVelocityPerSecond = finishX / duration;
+                    const currentFrameSpeed = idealVelocityPerSecond * h.luckFactor * (0.98 + Math.random() * 0.04) * deltaTime;
                     
                     h.x += currentFrameSpeed;
 
+                    // CHỈ nhận ngựa vào danh sách thắng cuộc ĐỦ số lượng top 3 thì khóa mảng lại
                     if (h.x >= finishX) {
                         h.x = finishX;
                         h.finished = true;
-                        
-                        // CHỈ PUSH NẾU TÊN CHƯA TỒN TẠI TRONG DANH SÁCH NGƯỜI THẮNG
-                        if (winners.length < targetWinnersCount && !winners.includes(h.name)) {
+                        if (winners.length < targetWinnersCount) {
                             winners.push(h.name);
                         }
                     }
@@ -260,30 +301,23 @@
                 }
             });
 
-            // LOGIC CẬP NHẬT THỨ HẠNG TRỰC TIẾP
-            const sortedHorses = [...horses].sort((a, b) => b.x - a.x);
-            
-            horses.forEach(h => {
-                h.el.classList.remove('top-1', 'top-2', 'top-3');
-            });
-
-            const liveList = document.getElementById('live-list');
-            liveList.innerHTML = '';
-            
-            const medals = ['🥇', '🥈', '🥉'];
-            const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
-
-            for (let i = 0; i < Math.min(sortedHorses.length, 3); i++) {
-                sortedHorses[i].el.classList.add(`top-${i+1}`);
-                liveList.innerHTML += `<div class="live-rank-item ${rankClasses[i]}"><span>${medals[i]} ${sortedHorses[i].name}</span></div>`;
+            // TỐI ƯU: chỉ cập nhật bảng xếp hạng live ~10 lần/giây thay vì mỗi frame (60 lần/giây).
+            // Với số lượng ngựa lớn, sort() + rebuild innerHTML mỗi frame là nguyên nhân chính
+            // gây quá tải DOM, làm rAF bị trình duyệt delay nghiêm trọng -> đứng game.
+            if (currentTime - lastLeaderboardUpdate > 100) {
+                updateLeaderboard(horses);
+                lastLeaderboardUpdate = currentTime;
             }
 
-            // ĐIỀU KIỆN KẾT THÚC CHẶT CHẼ TRƯỚC KHI THỰC HIỆN RENDER KẾT QUẢ CHUNG CUỘC
+            // ĐIỀU KIỆN DỪNG: Kiểm tra chặt chẽ, nếu đủ người thắng và chưa kết thúc thì gọi hàm đóng màn hình
             if (winners.length >= targetWinnersCount || currentTime >= endTime) {
-                isRaceEnded = true;
-                cancelAnimationFrame(animationId);
-                setTimeout(showFinalResult, 300);
-                return;
+                if (!isRaceEnded) {
+                    isRaceEnded = true;
+                    clearTimeout(failsafeTimer);
+                    updateLeaderboard(horses); // cập nhật lần cuối trước khi đóng
+                    setTimeout(showFinalResult, 400);
+                }
+                return; // Ngắt vòng lặp frame ngay lập tức
             }
 
             animationId = requestAnimationFrame(frame);
@@ -291,13 +325,60 @@
         animationId = requestAnimationFrame(frame);
     }
 
+    // Tách logic cập nhật bảng xếp hạng ra hàm riêng để có thể throttle tần suất gọi.
+    // Chỉ hiện tag tên cho TOP 5 con dẫn đầu (class show-name), các con còn lại
+    // bị ẩn tên (CSS visibility:hidden) để giảm số phần tử DOM cần render mỗi lần
+    // cập nhật khi số lượng ngựa lớn (51-80+ con).
+    const TOP_DISPLAY_COUNT = 5;
+
+    function updateLeaderboard(horses) {
+        const sortedHorses = [...horses].sort((a, b) => b.x - a.x);
+
+        horses.forEach(h => {
+            h.el.classList.remove('top-1', 'top-2', 'top-3', 'top-4', 'top-5', 'show-name');
+        });
+
+        const liveList = document.getElementById('live-list');
+        const medals = ['🥇', '🥈', '🥉'];
+        const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
+        let html = '';
+
+        // Bảng xếp hạng live ở góc màn hình vẫn chỉ hiện top 3 (giữ nguyên thiết kế cũ)
+        for (let i = 0; i < Math.min(sortedHorses.length, 3); i++) {
+            html += `<div class="live-rank-item ${rankClasses[i]}"><span>${medals[i]} ${sortedHorses[i].name}</span></div>`;
+        }
+        liveList.innerHTML = html;
+
+        // Trên đường đua: gắn class top-1..top-5 + show-name cho 5 con dẫn đầu
+        for (let i = 0; i < Math.min(sortedHorses.length, TOP_DISPLAY_COUNT); i++) {
+            sortedHorses[i].el.classList.add(`top-${i+1}`, 'show-name');
+        }
+    }
+
+    // Nếu hết giờ (do failsafe kích hoạt) mà chưa đủ 3 ngựa về đích,
+    // tự động điền nốt phần còn thiếu của podium theo vị trí x hiện tại,
+    // để bảng kết quả luôn hiển thị đầy đủ thay vì bị thiếu/đứng.
+    function finalizeRemainingWinners(horses, targetWinnersCount) {
+        if (winners.length >= targetWinnersCount) return;
+        const sortedHorses = [...horses].sort((a, b) => b.x - a.x);
+        for (const h of sortedHorses) {
+            if (winners.length >= targetWinnersCount) break;
+            if (!winners.includes(h.name)) {
+                winners.push(h.name);
+            }
+        }
+    }
+
     function showFinalResult() {
+        cancelAnimationFrame(animationId);
+        if (failsafeTimer) clearTimeout(failsafeTimer);
         document.getElementById('cheerSound').pause();
         document.getElementById('live-leaderboard').style.display = 'none';
         const podium = document.getElementById('podium');
         podium.innerHTML = '';
         
         const medals = ['🥇 Hạng 1', '🥈 Hạng 2', '🥉 Hạng 3'];
+        // Đảm bảo chỉ in ra đúng số lượng thực tế đã ghi nhận trong mảng khóa
         for(let i = 0; i < winners.length; i++) {
             podium.innerHTML += `<div class="rank-item rank-${i+1}">${medals[i]}: ${winners[i]}</div>`;
         }
