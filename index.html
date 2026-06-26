@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đua Ngựa Kịch Tính v1.6.3 - Anti-Crash Logic</title>
+    <title>Đua Ngựa Kịch Tính v1.6.4 - Engine Siêu Ổn Định</title>
     <style>
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; background: #1e293b; margin: 0; padding: 10px; overflow: hidden; }
         .version-tag { text-align: right; font-size: 12px; color: #94a3b8; font-style: italic; padding-right: 10px; }
@@ -52,7 +52,7 @@
         .horse-container.top-2 .horse-name { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; border-color: #e2e8f0; }
         .horse-container.top-3 .horse-name { background: linear-gradient(135deg, #b45309, #78350f); color: #fff; border-color: #fed7aa; }
 
-        .horse-img { width: 55px; height: auto; display: block; } /* Thu nhỏ nhẹ kích thước ngựa để vừa khi nâng số lượng con */
+        .horse-img { width: 50px; height: auto; display: block; } 
         
         /* VẠCH ĐÍCH CHUYÊN NGHIỆP */
         .finish-line { 
@@ -130,7 +130,7 @@
 <body>
 
 <div class="setup-panel" id="setup">
-    <div class="version-tag">Phiên bản 1.6.3 (Stable Engine)</div>
+    <div class="version-tag">Phiên bản 1.6.4 (Super Engine)</div>
     <h2 style="text-align: center; margin: 0 0 20px 0; color: #1e293b; font-weight: 800; letter-spacing: -0.5px;">🏁 ĐUA NGỰA CHUYÊN NGHIỆP</h2>
     <div class="input-group"><label>Số lượng ngựa:</label><input type="number" id="horseCount" value="10"></div>
     <div class="input-group"><label>Tên ngựa:</label><textarea id="horseNames" rows="3" placeholder="Nhập tên ngăn cách bằng dấu phẩy..."></textarea></div>
@@ -164,11 +164,13 @@
     let animationId;
     let winners = [];
     let lastLuckUpdate = 0;
-    let isRaceEnded = false; // Biến cờ bảo vệ, tránh gọi hiển thị kết quả nhiều lần
+    let isRaceEnded = false;
 
     function initRace() {
         winners = []; 
         isRaceEnded = false;
+        lastLuckUpdate = 0;
+        
         const audio = document.getElementById('cheerSound');
         audio.play().catch(() => {});
 
@@ -184,7 +186,6 @@
         document.getElementById('timer-display').style.display = 'block';
         document.getElementById('live-leaderboard').style.display = 'block';
 
-        // Tính toán khoảng cách thông minh hơn để không bị tràn màn hình khi có 40 con
         const trackHeight = track.clientHeight - 60;
         const spacing = count > 1 ? trackHeight / count : trackHeight;
 
@@ -217,15 +218,20 @@
         const startTime = performance.now();
         const endTime = startTime + (duration * 1000);
         const finishX = 88;
-        const targetWinnersCount = Math.min(horses.length, 3); // Cần tìm đủ số lượng top 3
+        const targetWinnersCount = Math.min(horses.length, 3);
 
         function frame(currentTime) {
+            // NẾU TRẬN ĐẤU ĐÃ KẾT THÚC, NGẮT NGAY LẬP TỨC KHÔNG CHO CHẠY CODE PHÍA DƯỚI
+            if (isRaceEnded) return;
+
             const elapsed = (currentTime - startTime) / 1000;
             const remaining = Math.max(0, (endTime - currentTime) / 1000);
 
+            if (lastLuckUpdate === 0) lastLuckUpdate = currentTime;
+
             if (currentTime - lastLuckUpdate > 3000) {
                 horses.forEach(h => {
-                    h.luckFactor = 0.85 + (Math.random() * 0.30);
+                    if (!h.finished) h.luckFactor = 0.85 + (Math.random() * 0.30);
                 });
                 lastLuckUpdate = currentTime;
             }
@@ -240,11 +246,12 @@
                     
                     h.x += currentFrameSpeed;
 
-                    // CHỈ nhận ngựa vào danh sách thắng cuộc ĐỦ số lượng top 3 thì khóa mảng lại
                     if (h.x >= finishX) {
                         h.x = finishX;
                         h.finished = true;
-                        if (winners.length < targetWinnersCount) {
+                        
+                        // CHỈ PUSH NẾU TÊN CHƯA TỒN TẠI TRONG DANH SÁCH NGƯỜI THẮNG
+                        if (winners.length < targetWinnersCount && !winners.includes(h.name)) {
                             winners.push(h.name);
                         }
                     }
@@ -271,13 +278,12 @@
                 liveList.innerHTML += `<div class="live-rank-item ${rankClasses[i]}"><span>${medals[i]} ${sortedHorses[i].name}</span></div>`;
             }
 
-            // ĐIỀU KIỆN DỪNG: Kiểm tra chặt chẽ, nếu đủ người thắng và chưa kết thúc thì gọi hàm đóng màn hình
+            // ĐIỀU KIỆN KẾT THÚC CHẶT CHẼ TRƯỚC KHI THỰC HIỆN RENDER KẾT QUẢ CHUNG CUỘC
             if (winners.length >= targetWinnersCount || currentTime >= endTime) {
-                if (!isRaceEnded) {
-                    isRaceEnded = true;
-                    setTimeout(showFinalResult, 400);
-                }
-                return; // Ngắt vòng lặp frame ngay lập tức
+                isRaceEnded = true;
+                cancelAnimationFrame(animationId);
+                setTimeout(showFinalResult, 300);
+                return;
             }
 
             animationId = requestAnimationFrame(frame);
@@ -286,14 +292,12 @@
     }
 
     function showFinalResult() {
-        cancelAnimationFrame(animationId);
         document.getElementById('cheerSound').pause();
         document.getElementById('live-leaderboard').style.display = 'none';
         const podium = document.getElementById('podium');
         podium.innerHTML = '';
         
         const medals = ['🥇 Hạng 1', '🥈 Hạng 2', '🥉 Hạng 3'];
-        // Đảm bảo chỉ in ra đúng số lượng thực tế đã ghi nhận trong mảng khóa
         for(let i = 0; i < winners.length; i++) {
             podium.innerHTML += `<div class="rank-item rank-${i+1}">${medals[i]}: ${winners[i]}</div>`;
         }
