@@ -329,7 +329,7 @@
     // Chỉ hiện tag tên cho TOP 5 con dẫn đầu (class show-name), các con còn lại
     // bị ẩn tên (CSS visibility:hidden) để giảm số phần tử DOM cần render mỗi lần
     // cập nhật khi số lượng ngựa lớn (51-80+ con).
-    const TOP_DISPLAY_COUNT = 5;
+    const TOP_DISPLAY_COUNT = 10;
 
     function updateLeaderboard(horses) {
         const sortedHorses = [...horses].sort((a, b) => b.x - a.x);
